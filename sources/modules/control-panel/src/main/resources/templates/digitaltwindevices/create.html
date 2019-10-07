@@ -41,7 +41,20 @@
 		<link rel="stylesheet" type="text/css" media="all" th:href="@{/static/vendor/codemirror/theme/elegant.css}"/>
 		
 		<link rel="stylesheet" type="text/css" media="all" href="https://cesiumjs.org/releases/1.62/Build/Cesium/Widgets/widgets.css"/>
-			
+		<style>
+			#map {
+				width: 95%;
+				height: 400px;
+				left: 24px;
+				top: 20px;
+				position: relative;
+				overflow: hidden;
+			}
+
+			.cesium-viewer-bottom {
+				display: none !important;
+			}
+		</style>
 	</head>	
 
 	<!-- page-sidebar-closed to START WITH MENU COLLAPSED. -->
@@ -250,7 +263,7 @@
 																			<input class="form-control" id="longitude" name="longitude" maxlength="50" th:field="*{longitude}" th:required="true" th:placeholder="#{digitaltwindevice.longitude}"/>
 																		</div>
 																	</div>
-																	<div id="map" class="thumbnail text-center" style="width:95%; height:400px; left: 24px; top: 20px;"></div>
+																	<div id="map" class="thumbnail text-center"></div>
 																</div>
 															</div>
 															<div class="col-md-12 col-sm-6 col-xs-12">
