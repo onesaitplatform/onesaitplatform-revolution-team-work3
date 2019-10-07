@@ -14,7 +14,7 @@
     limitations under the License.
 
 -->
-<html xmlns:th="http://www.thymeleaf.org"  th:with="lang=${#locale.language}" th:lang="${lang}">
+<html xmlns:th="http://www.thymeleaf.org" th:with="lang=${#locale.language}" th:lang="${lang}">
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<meta name="_csrf" th:content="${_csrf.token}"/>
@@ -39,6 +39,8 @@
 		<link rel="stylesheet" type="text/css" media="all" th:href="@{/static/vendor/json/jsoneditor.css}"/>
 		<link rel="stylesheet" type="text/css" media="all" th:href="@{/static/vendor/codemirror/lib/codemirror.css}"/>
 		<link rel="stylesheet" type="text/css" media="all" th:href="@{/static/vendor/codemirror/theme/elegant.css}"/>
+		
+		<link rel="stylesheet" type="text/css" media="all" href="https://cesiumjs.org/releases/1.62/Build/Cesium/Widgets/widgets.css"/>
 			
 	</head>	
 
@@ -330,8 +332,8 @@
 	<script th:src="@{/static/vendor/codemirror/addon/edit/matchbrackets.js}" />
 	<script th:src="@{/static/vendor/codemirror/addon/selection/active-line.js}" />
 	
-	<!-- API GOOGLE MAPS -->
-	<script async="async" defer="defer" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCw_li1D20_XNhQEslPPHWn49sAZSYdzag&amp;callback=initMap"></script>
+	<!-- CESIUM -->
+	<script src="https://cesiumjs.org/releases/1.62/Build/Cesium/Cesium.js"></script>
 	
 	<!-- INPUTMASK -->
 	<script th:src="@{/static/vendor/jquery-inputmask/dist/min/jquery.inputmask.bundle.min.js}"/>
@@ -359,50 +361,65 @@
 	};
 
 	function initMap() {
-		var uluru;
-		var marker;
-		if([[${digitaltwindevice?.id}]] === null){
-			uluru = {lat: 53.516822602373786, lng: 14.697412318359397};
-			 var map = new google.maps.Map(document.getElementById('map'), {
-		          zoom: 3,
-		          center: uluru
-		        });
-		}else{
-			uluru= new google.maps.LatLng([[${digitaltwindevice?.latitude}]],[[${digitaltwindevice?.longitude}]]);
-			 var map = new google.maps.Map(document.getElementById('map'), {
-		          zoom: 3,
-		          center: uluru
-		        });
-			marker = new google.maps.Marker({
-		            position: uluru,
-		            title:"My Device"
-		        });
-		        
-		        marker.setMap(map);
-		}
-		
-        google.maps.event.addListener(map, 'click', function(event) {
-        	   placeMarker(event.latLng);
-        	});
-        
-       	function placeMarker(location) {
-        	  if ( marker ) {
-        	    marker.setPosition(location);
-        	  } else {
-        	    marker = new google.maps.Marker({
-        	      position: location,
-        	      map: map
-        	    });
-        	  }
-        	  google.maps.event.addListener(marker, "click", function (event) {
-                  latitude = event.latLng.lat();
-                  longitude = event.latLng.lng();
-                  $("#latitude").val(latitude);
-                  $("#longitude").val(longitude);
-                  console.log( latitude + ', ' + longitude );
-              });
-        	}
+		let height = 1600000;
+		let [lat, long] = [-4, 40];
+		if([[${digitaltwindevice?.id}]] !== null){
+			lat = [[${digitaltwindevice?.latitude}]];
+			long = [[${digitaltwindevice?.longitude}]];
+		}		
+		document.getElementById("latitude").value = lat.toFixed(6);
+		document.getElementById("longitude").value = long.toFixed(6);        
+        let viewer = new Cesium.Viewer("map", {
+          animation: false,
+          homeButton: false,
+          baseLayerPicker: false,
+          fullscreenButton: false,
+          geocoder: false,
+          infoBox: true,
+          navigationHelpButton: false,
+          scene3DOnly: true,
+          timeline: false,
+          selectionIndicator: false
+        });
+        let scene = viewer.scene;
+        const pinBuilder = new Cesium.PinBuilder();
+        let marker = viewer.entities.add({
+          name: "Digital Twin",
+          position: Cesium.Cartesian3.fromDegrees(lat, long),
+          billboard: {
+            image: pinBuilder.fromColor(Cesium.Color.RED, 48).toDataURL(),
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM
+          }
+        });
+        const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
+        handler.setInputAction(function(e) {
+          const cartesian = viewer.camera.pickEllipsoid(
+            e.position,
+            scene.globe.ellipsoid
+          );
+          if (cartesian) {
+            const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+            const longitudeString = Cesium.Math.toDegrees(
+              cartographic.longitude
+            ).toFixed(6);
+            const latitudeString = Cesium.Math.toDegrees(
+              cartographic.latitude
+            ).toFixed(6);
+            document.getElementById("longitude").value = longitudeString;
+            document.getElementById("latitude").value = latitudeString;
+            marker.position = Cesium.Cartesian3.fromDegrees(
+              longitudeString,
+              latitudeString
+            );
+          }
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        viewer.camera.setView({
+          destination: Cesium.Cartesian3.fromDegrees(lat, long, height)
+        });	
 	}
+		
+       
 
 	//]]>
 	// LOAD DATA TO USE IN CREATE WIZARD CONTROLLER
